@@ -7,6 +7,7 @@ import nltk
 from nltk.corpus import stopwords
 import re
 from collections import Counter
+from pydantic import BaseModel
 
 nltk.download("stopwords", quiet=True)
 
@@ -37,27 +38,29 @@ def extract_text(url):
 def root():
     return {"status": "ok", "testing_text": extract_text(TEST_URL)}
 
+class AnalyzeRequest(BaseModel):
+    url: str
 
-@app.get("/analyze")
-def analyze(top_n=5):
-    text = extract_text(TEST_URL)
+@app.post("/analyze")
+def analyze(req: AnalyzeRequest, top_n: int = 60):
+    try:
+        text = extract_text(req.url)
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=f"Failed to fetch article: {e}")
+
     stop_words = set(stopwords.words("english"))
+    words = re.findall(r'\b[a-zA-Z]{3,}\b', text.lower())
+    word_counts = Counter(w for w in words if w not in stop_words)
 
-    text = extract_text(TEST_URL)
-    words = text.split(" ")
+    top_words = word_counts.most_common(top_n)
+    max_score = top_words[0][1] if top_words else 1
 
-    # count words in lowercase so stop_words can be identified
-    words = [word.lower() for word in words]
-    word_counts = Counter(words)
-
-    # sort by score
-    words_and_scores = sorted(word_counts.items(), key=lambda x : x[1], reverse=True)
-    # eliminate stop words
-    words_and_scores = {word: score for word, score in words_and_scores if 
-                        word not in stop_words}
-                        
-    return words_and_scores
-
+    return {
+        "words": [
+            {"word": word, "weight": round(score / max_score)}
+            for word, score in top_words
+        ]
+    }
 
 
    
