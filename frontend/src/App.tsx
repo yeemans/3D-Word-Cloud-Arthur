@@ -82,7 +82,31 @@ export default function App() {
   const [errorMsg, setErrorMsg] = useState("");
   const [words, setWords] = useState<Word3D[]>([]);
 
+  async function analyze() {
+    if (!url.trim()) return;
+    setStatus("loading");
+    setErrorMsg("");
+    try {
+      const res = await fetch("http://localhost:8000/analyze", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ url: url.trim() }),
+      });
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.detail || "Server error");
+      }
+      const data = await res.json();
 
+      console.log(data);
+      
+      setWords(buildWords(data.words));
+      setStatus("done");
+    } catch (e: any) {
+      setErrorMsg(e.message || "Something went wrong");
+      setStatus("error");
+    }
+  }
 
   return (
     <div style={s.root}>
@@ -124,11 +148,11 @@ export default function App() {
             placeholder="https://example.com/article"
             value={url}
             onChange={(e) => setUrl(e.target.value)}
-            onKeyDown={(e) => e.key === "Enter"}
+            onKeyDown={(e) => e.key === "Enter" && analyze()}
           />
           <button
             style={{ ...s.btn, ...(status === "loading" ? s.btnDisabled : {}) }}
-            
+            onClick={analyze}
             disabled={status === "loading"}
           >
             {status === "loading" ? "…" : "Analyse →"}
