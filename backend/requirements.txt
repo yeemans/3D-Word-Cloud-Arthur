@@ -2,8 +2,5 @@ fastapi
 uvicorn[standard]
 requests
 beautifulsoup4
-lxml
-scikit-learn
 nltk
-httpx
 python-dotenv
