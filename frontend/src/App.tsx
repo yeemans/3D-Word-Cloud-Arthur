@@ -1,6 +1,7 @@
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Canvas, useFrame } from "@react-three/fiber";
 import { Text, OrbitControls } from "@react-three/drei";
+import { HexColorPicker } from "react-colorful";
 
 // ── types ─────────────────────────────────────────────────────────────────────
 interface WordData {
@@ -14,10 +15,6 @@ interface Word3D extends WordData {
   fontSize: number;
 }
 
-// ── helpers ───────────────────────────────────────────────────────────────────
-const PALETTE = [
-  "#e8f4f8", "#a8d8ea", "#7ec8e3", "#5bb8d4",
-];
 
 function spherePoint(index: number, total: number): [number, number, number] {
   const phi = Math.acos(1 - (2 * (index + 0.5)) / total);
@@ -30,11 +27,11 @@ function spherePoint(index: number, total: number): [number, number, number] {
   ];
 }
 
-function buildWords(data: WordData[]): Word3D[] {
+function buildWords(data: WordData[], palette: string[]): Word3D[] {
   return data.map((d, i) => ({
     ...d,
     position: spherePoint(i, data.length),
-    color: PALETTE[i % PALETTE.length],
+    color: palette[i % palette.length],
     fontSize: 0.2 + d.weight * 0.5,
   }));
 }
@@ -73,6 +70,7 @@ function CloudScene({ words }: { words: Word3D[] }) {
 const SAMPLES = [
   { label: "BBC – Climate", url: "https://www.bbc.com/news/science-environment-56901261" },
   { label: "Los Gatos Race", url: "https://losgatan.com/cats-hill-50th-anniversary-this-saturday/" },
+  { label: "San Jose Sports", url: "https://sjsuspartans.com/news/2026/03/19/spartans-to-host-uconn-and-san-diego-state-in-non-con-matchups" },
 ];
 
 // ── main app ──────────────────────────────────────────────────────────────────
@@ -81,6 +79,10 @@ export default function App() {
   const [status, setStatus] = useState<"idle" | "loading" | "done" | "error">("idle");
   const [errorMsg, setErrorMsg] = useState("");
   const [words, setWords] = useState<Word3D[]>([]);
+  // ── color picker ───────────────────────────────────────────────────────────────
+  const [palette, setPalette] = useState([
+    "#e8f4f8", "#a8d8ea", "#7ec8e3", "#3d7905",
+  ]);
 
   async function analyze() {
     if (!url.trim()) return;
@@ -100,7 +102,7 @@ export default function App() {
 
       console.log(data);
       
-      setWords(buildWords(data.words));
+      setWords(buildWords(data.words, palette));
       setStatus("done");
     } catch (e: any) {
       setErrorMsg(e.message || "Something went wrong");
@@ -119,7 +121,20 @@ export default function App() {
           <span style={s.logoDot} />
           Word Globe
         </div>
+        
         <p style={s.tagline}>Interactive Word Map</p>
+        <div style={{ display: "flex", gap: "8px", flexWrap: "wrap", justifyContent: "center", marginTop: "12px" }}>
+          {palette.map((color: string, index: number) => (
+            <HexColorPicker
+              key={index}
+              color={color}
+              onChange={(newColor) =>
+                setPalette((prev) => prev.map((c, i) => (i === index ? newColor : c)))
+              }
+              style={{ width: "80px", height: "80px" }}
+            />
+          ))}
+        </div>
       </header>
 
       {/* canvas */}

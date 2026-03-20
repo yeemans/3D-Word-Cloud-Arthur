@@ -1,5 +1,8 @@
 {
   "devDependencies": {
     "@types/three": "^0.183.1"
+  },
+  "dependencies": {
+    "react-colorful": "^5.6.1"
   }
 }
